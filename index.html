@@ -11,7 +11,41 @@
             --class3: #f5f3ff; /* 2420087 */
             --active-week: #007AFF;
         }
-
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+        
+            .week-nav button {
+                padding: 6px 10px;
+                font-size: 14px;
+            }
+        
+            .week-card {
+                padding: 15px;
+                border-radius: 12px;
+            }
+        
+            th, td {
+                padding: 8px;
+                font-size: 14px;
+            }
+        
+            .time-col {
+                width: 70px;
+                font-size: 13px;
+            }
+        
+            .holiday-mark {
+                right: 2px;
+                bottom: 2px;
+            }
+        
+            .holiday-text {
+                font-size: 12px;
+                padding: 1px 4px;
+            }
+        }
         body {
             font-family: -apple-system, system-ui;
             background: #f5f5f7;
