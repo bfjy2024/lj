@@ -12,6 +12,7 @@
             --active-week: #007AFF;
         }
 
+        /* 保持原有样式不变 */
         body {
             font-family: -apple-system, system-ui;
             background: #f5f5f7;
@@ -60,6 +61,8 @@
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #eee;
+            position: relative;
+            min-height: 60px;
         }
 
         th {
@@ -77,6 +80,50 @@
             font-weight: 500;
             color: #666;
         }
+
+        /* 新增课程名称加粗样式 */
+        .course-name {
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        /* 节假日标记样式 */
+        .holiday-mark {
+            position: absolute;
+            right: 4px;
+            bottom: 4px;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+        }
+        
+        .holiday-text {
+            background: rgba(255, 235, 59, 0.9);
+            color: #c62828;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .holiday-line {
+            width: 12px;
+            height: 2px;
+            background: #c62828;
+            margin-left: 4px;
+            opacity: 0.6;
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .week-nav button { padding: 6px 10px; }
+            .week-card { padding: 15px; border-radius: 12px; }
+            th, td { padding: 8px; font-size: 14px; }
+            .time-col { width: 70px; font-size: 13px; }
+            .holiday-mark { right: 2px; bottom: 2px; }
+            .holiday-text { font-size: 12px; padding: 1px 4px; }
+        }
     </style>
 </head>
 <body>
@@ -86,6 +133,12 @@
 <script>
 // 基础数据
 const startDate = new Date(2025, 1, 24); // 2025-02-24
+const holidays = [
+    { date: '2025-04-04', name: '清明' },
+    { date: '2025-05-01', name: '劳动节' },
+    { date: '2025-06-18', name: '端午' }
+];
+
 const courses = [
     { // 星期一 5-6节
         name: '高等数学A2', weeks: '1-16', time: '5-6', day: 1,
@@ -147,16 +200,6 @@ function init() {
     highlightCurrent();
 }
 
-// 显示指定周
-function showWeek(week) {
-    document.querySelectorAll('.week-nav button').forEach(btn => {
-        btn.classList.toggle('active', btn.textContent === `第${week}周`);
-    });
-    document.querySelectorAll('.week-card').forEach(card => {
-        card.style.display = card.id === `week${week}` ? 'block' : 'none';
-    });
-}
-
 // 渲染课程表
 function renderTable(week) {
     const timeSlots = [
@@ -168,28 +211,53 @@ function renderTable(week) {
     let html = `<table>
         <tr>
             <th class="time-col">时间</th>
-            ${[1,2,3,4,5].map(d => `
-                <th>星期${['一','二','三','四','五'][d-1]}<br>
-                <small>${getDateStr(week, d)}</small></th>
-            `).join('')}
+            ${[1,2,3,4,5].map(d => {
+                const dateStr = getDateStr(week, d);
+                const holiday = checkHoliday(dateStr);
+                return `
+                    <th>
+                        星期${['一','二','三','四','五'][d-1]}
+                        <div class="date-info">
+                            ${dateStr}
+                            ${holiday ? `<span class="holiday-icon">🎉</span>` : ''}
+                        </div>
+                    </th>
+                `;
+            }).join('')}
         </tr>`;
 
     timeSlots.forEach(slot => {
         html += `<tr>
             <td class="time-col">${slot.time}节<br>${slot.period}</td>
             ${[1,2,3,4,5].map(day => {
+                const dateStr = getDateStr(week, day);
+                const holiday = checkHoliday(dateStr);
                 const course = courses.find(c => 
                     checkWeek(week, c.weeks) && 
                     c.day === day && 
                     c.time === slot.time
                 );
-                return course ? `
-                    <td style="background:${course.color}">
-                        <b>${course.name}</b><br>
-                        ${course.classroom}<br>
-                        课号：${course.class}
+                
+                return `
+                    <td style="background:${course?.color || 'transparent'}" 
+                        class="${holiday ? 'has-holiday' : ''}">
+                        ${course ? `
+                            <div class="course-content">
+                                <div class="course-name">${course.name}</div>
+                                <div class="course-detail">
+                                    ${course.classroom}<br>
+                                    课号：${course.class}
+                                </div>
+                            </div>
+                        ` : ''}
+                        ${holiday ? `
+                            <div class="holiday-mark">
+                                <div class="holiday-text">${holiday}</div>
+                                <div class="holiday-line"></div>
+                            </div>
+                        ` : ''}
                     </td>
-                ` : '<td></td>';
+                `;
             }).join('')}
         </tr>`;
     });
@@ -197,7 +265,14 @@ function renderTable(week) {
     return html + '</table>';
 }
 
-// 辅助函数（保持原逻辑）
+// 辅助函数
+function checkHoliday(dateStr) {
+    const [month, day] = dateStr.split('/');
+    const fullDate = `2025-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
+    const holiday = holidays.find(h => h.date === fullDate);
+    return holiday?.name || null;
+}
+
 function checkWeek(current, condition) {
     const [start, end] = condition.split('-').map(Number);
     return current >= start && current <= end;
@@ -223,6 +298,7 @@ function getDateRange(week) {
     return `${start.getMonth()+1}/${start.getDate()} - ${end.getMonth()+1}/${end.getDate()}`;
 }
 
+// 保持原有高亮逻辑
 function highlightCurrent() {
     const now = new Date();
     const currentWeek = getCurrentWeek();
